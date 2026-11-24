@@ -1217,7 +1217,7 @@ const store = {
     }
     return null;
   },
-  write(v, remember = false) {
+  write(v, remember = true) {
     try { (remember ? localStorage : sessionStorage).setItem(SESSION_KEY, JSON.stringify(v)); } catch { /* ignore */ }
     try { (remember ? sessionStorage : localStorage).removeItem(SESSION_KEY); } catch { /* ignore */ }
   },
