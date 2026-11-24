@@ -5111,7 +5111,7 @@ function toProfile(d) {
     name: str(d.name),
     photo: str(d.photo),
     gender: ['boy', 'girl'].includes(d.gender) ? d.gender : '',
-    rating: num(d.rating, 700),
+    rating: num(d.rating, 1300),
     wins: num(d.wins), losses: num(d.losses), draws: num(d.draws),
     played: num(d.played), p1: num(d.p1), p2: num(d.p2), p3: num(d.p3),
     createdAt: num(d.createdAt),
@@ -5688,7 +5688,7 @@ function createRemoteStore({ projectId, apiKey, databaseURL = '' }) {
       await fs.commit([
         write.set(`users/${me.uid}`, priv, { mustNotExist: true, serverTime: ['createdAt'] }),
         write.set(`profiles/${me.uid}`, {
-          name, photo, gender, rating: 700, wins: 0, losses: 0, draws: 0, played: 0, p1: 0, p2: 0, p3: 0,
+          name, photo, gender, rating: 1300, wins: 0, losses: 0, draws: 0, played: 0, p1: 0, p2: 0, p3: 0,
         }, { mustNotExist: true, serverTime: ['createdAt'] }),
       ]);
     },
@@ -5896,7 +5896,7 @@ function createRemoteStore({ projectId, apiKey, databaseURL = '' }) {
       return docs.map((d) => {
         const r = toRegistration(d);
         const p = pm.get(r.uid); const u = um.get(r.uid);
-        if (p) { r.gender = ['boy', 'girl'].includes(p.gender) ? p.gender : ''; r.rating = Number.isFinite(p.rating) ? p.rating : 700; }
+        if (p) { r.gender = ['boy', 'girl'].includes(p.gender) ? p.gender : ''; r.rating = Number.isFinite(p.rating) ? p.rating : 1300; }
         if (u) { r.phone = typeof u.phone === 'string' ? u.phone : ''; r.gov = typeof u.gov === 'string' ? u.gov : ''; }
         return r;
       }).sort((a, b) => a.createdAt - b.createdAt);
