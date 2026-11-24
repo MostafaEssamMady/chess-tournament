@@ -5100,7 +5100,7 @@ function toRegistration(d) {
     uid: str(d.uid),
     createdAt: num(d.createdAt),
     // يضيفها المنظّم من الملف العام (لا تُخزَّن في الطلب): الجنس والتقييم؛ ومن الملف الخاص: الهاتف والمحافظة (للمنظّم فقط)
-    gender: '', rating: 0, phone: '', gov: '',
+    gender: '', rating: 0, phone: '', gov: '', shortId: ''
   };
 }
 
@@ -5110,6 +5110,7 @@ function toProfile(d) {
     uid: d.id,
     name: str(d.name),
     photo: str(d.photo),
+  shortId: str(d.shortId) || ('KASH-' + str(d.id).slice(-4).toUpperCase()),
     gender: ['boy', 'girl'].includes(d.gender) ? d.gender : '',
     rating: num(d.rating, 1300),
     wins: num(d.wins), losses: num(d.losses), draws: num(d.draws),
@@ -5688,7 +5689,7 @@ function createRemoteStore({ projectId, apiKey, databaseURL = '' }) {
       await fs.commit([
         write.set(`users/${me.uid}`, priv, { mustNotExist: true, serverTime: ['createdAt'] }),
         write.set(`profiles/${me.uid}`, {
-          name, photo, gender, rating: 1300, wins: 0, losses: 0, draws: 0, played: 0, p1: 0, p2: 0, p3: 0,
+          name, photo, gender, rating: 1300, shortId: 'KASH-' + me.uid.slice(-4).toUpperCase(), wins: 0, losses: 0, draws: 0, played: 0, p1: 0, p2: 0, p3: 0,
         }, { mustNotExist: true, serverTime: ['createdAt'] }),
       ]);
     },
@@ -9168,6 +9169,8 @@ function renderMe(params, ctx) {
           h('div', { class: 'me-text' },
             h('h1', { class: 'title' }, profile.name),
             h('p', { class: 'hint' }, role === 'spectator' ? 'متفرج' : `لاعب — ${GENDER_LABEL[profile.gender] || ''}`),
+            h('p', { class: 'hint' }, 'ID: ' + profile.shortId),
+h('button', { class: 'btn', type: 'button', onclick: () => navigator.clipboard.writeText(profile.shortId) }, 'نسخ ID'),
             h('p', { class: 'hint ltr-inline' }, me.email))),
         statsBlock(profile),
         role === 'competitor' ? h('dl', { class: 'facts' },
@@ -10666,7 +10669,46 @@ function renderFriends(_, ctx) {
   const canPlay = acc.role === 'competitor';
   const invitesBox = h('section', { class: 'f-invites', id: 'f-invites', 'aria-label': 'دعوات التحدّي' });
   const list = h('ul', { class: 'f-list', id: 'f-list' }, h('li', { class: 'loading' }, 'بنحمّل أصحابك…'));
-  const root = h('div', { class: 'page' }, h('h1', { class: 'page-title' }, 'الأصدقاء'), invitesBox, list);
+ const searchInput = h('input', { class: 'input', type: 'text', placeholder: 'اكتب ID  مثال KASH-XXXX' });
+const searchResult = h('div', { style: 'margin-top:8px' });
+async function doSearch() {
+  const q = (searchInput.value || '').trim().toUpperCase();
+  if (!q) { toast('اكتب ID الأول'); return; }
+  replace(searchResult, h('p', { class: 'hint' }, 'جارٍ البحث...'));
+  try {
+    let found = null;
+    if (store.findByShortId) found = await store.findByShortId(q);
+    else if (store.getProfileByShortId) found = await store.getProfileByShortId(q);
+    else if (store.listProfiles) { const all = await store.listProfiles(); const arr = Array.isArray(all) ? all : Object.values(all); found = arr.find((p) => (p.shortId || '').toUpperCase() === q); }
+    if (!found) { replace(searchResult, h('p', { class: 'hint' }, 'مفيش حد بالـ ID ده')); return; }
+    const p = found.profile || found;
+    const uid = p.uid || p.id || found.id;
+    replace(searchResult, h('div', { class: 'f-row' },
+      avatar(p.photo, p.name, 'md'),
+      h('div', { class: 'f-main' },
+        h('p', { class: 'f-name' }, p.name),
+        h('p', { class: 'hint' }, 'ID: ' + (p.shortId || q) + '  •  التقييم ' + (p.rating || 0)),
+        h('button', { class: 'btn btn-primary btn-small', type: 'button', onclick: async () => {
+          try {
+            if (store.sendFriendRequest) await store.sendFriendRequest(uid);
+            else if (store.addFriend) await store.addFriend(uid);
+            else if (store.requestFriend) await store.requestFriend(uid);
+            else if (ctx.socialSvc && ctx.socialSvc()?.sendFriendRequest) await ctx.socialSvc().sendFriendRequest(uid);
+            else throw new Error('no method');
+            toast('تم إرسال طلب الصداقة');
+          } catch (e) { toast('مش قادر يبعت الطلب دلوقتي'); }
+        } }, 'ابعت صداقة')
+      )
+    ));
+  } catch (e) { replace(searchResult, h('p', { class: 'hint' }, 'حصل مشكلة في البحث')); }
+}
+const searchBox = h('div', { class: 'card' },
+  h('p', { class: 'hint' }, 'ابحث بالـ ID'),
+  searchInput,
+  h('button', { class: 'btn btn-primary', type: 'button', onclick: doSearch }, 'بحث'),
+  searchResult
+);
+const root = h('div', { class: 'page' }, h('h1', { class: 'page-title' }, 'أصدقائي'), searchBox, invitesBox, list);
   let stopped = false; let timer = null;
 
   async function loadFriends() {
