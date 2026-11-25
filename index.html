@@ -12206,7 +12206,12 @@ function playerPage(ctx, { t, players, games }, key) {
     h('p', { class: 'crumb' }, h('a', { class: 'link', href: `#/t/${t.id}` }, t.name)),
     h('h2', { class: 'me-name' }, me.name, me.gender ? ' ' : '', me.gender ? chip(GENDER_LABEL[me.gender]) : null, me.active ? null : chip('منسحب')),
     profileSlot, summary);
-
+const isMe = ctx.store.auth.current()?.uid === key;
+const playerActions = !isMe ? h('div', { class: 'row-actions', style: 'margin:12px 0' },
+  h('p', { class: 'hint' }, 'ID: ' + 'KASH-' + String(key).slice(-4).toUpperCase()),
+  h('button', { class: 'btn', type: 'button', onclick: async () => { try { await ctx.store.addFriend(key); toast('تم إرسال طلب الصداقة'); } catch (e) { toast('مش قادر يبعت الطلب'); } } }, 'ضيف صديق'),
+  h('button', { class: 'btn btn-primary', type: 'button', onclick: () => { try { ctx.social?.challenge(key, me); } catch (e) { toast('مش قادر يبعت التحدي'); } } }, 'تحدي')
+) : h('p', { class: 'hint' }, 'ID: ' + 'KASH-' + String(key).slice(-4).toUpperCase());
   const nextBlock = matchBlock(ctx, { t, players, games }, key);
 
   const rounds = [...new Set(mine.map((g) => g.round))].sort((a, b) => a - b);
@@ -12218,7 +12223,7 @@ function playerPage(ctx, { t, players, games }, key) {
         gameList(mine.filter((g) => g.round === r), { tid: t.id, meKey: key, live: t.mode === 'online' }))))
     : null;
 
-  return h('div', { class: 'player-page' }, head, nextBlock, history);
+  return h('div', { class: 'player-page' }, head, playerActions, nextBlock, history);
 }
 
 // ---------- نموذج التسجيل (يبقى حيًّا بين التحديثات فلا يضيع ما كتبه اللاعب) ----------
