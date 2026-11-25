@@ -10679,7 +10679,7 @@ async function doSearch() {
     let found = null;
     if (store.findByShortId) found = await store.findByShortId(q);
     else if (store.getProfileByShortId) found = await store.getProfileByShortId(q);
-    else if (store.listProfiles) { const all = await store.listProfiles(); const arr = Array.isArray(all) ? all : Object.values(all); found = arr.find((p) => (p.shortId || '').toUpperCase() === q); }
+    else if (store.listProfiles) { const all = await store.listProfiles(); const arr = Array.isArray(all) ? all : Object.values(all); found = arr.find((p) => ((p.shortId || '').toUpperCase() === q || (p.uid || p.id ? 'KASH-' + String(p.uid || p.id).slice(-4).toUpperCase() === q : false) || (p.uid || p.id ? String(p.uid || p.id).slice(-4).toUpperCase() === q.replace(/^KASH-/, '') : false))); }
     if (!found) { replace(searchResult, h('p', { class: 'hint' }, 'مفيش حد بالـ ID ده')); return; }
     const p = found.profile || found;
     const uid = p.uid || p.id || found.id;
