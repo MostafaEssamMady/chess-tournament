@@ -10818,7 +10818,46 @@ function renderHome(_, ctx) {
   const champSlot = h('div', { class: 'champ-slot' });
   const noteSlot = h('div', { class: 'note-slot' });
   const statsSlot = h('section', { class: 'home-stats' });
-
+const homeSearchInput = h('input', { class: 'input', type: 'text', placeholder: 'ابحث بالـ ID  مثال KASH-XXXX' });
+const homeSearchResult = h('div', { style: 'margin-top:8px' });
+async function doHomeSearch() {
+  const q = (homeSearchInput.value || '').trim().toUpperCase();
+  if (!q) { toast('اكتب ID الأول'); return; }
+  replace(homeSearchResult, h('p', { class: 'hint' }, 'جارٍ البحث...'));
+  try {
+    let found = null;
+    if (store.findByShortId) found = await store.findByShortId(q);
+    else if (store.getProfileByShortId) found = await store.getProfileByShortId(q);
+    else if (store.listProfiles) { const all = await store.listProfiles(); const arr = Array.isArray(all) ? all : Object.values(all); found = arr.find((p) => (p.shortId || '').toUpperCase() === q); }
+    if (!found) { replace(homeSearchResult, h('p', { class: 'hint' }, 'مفيش حد بالـ ID ده')); return; }
+    const p = found.profile || found;
+    const uid = p.uid || p.id || found.id;
+    replace(homeSearchResult, h('div', { class: 'f-row' },
+      avatar(p.photo, p.name, 'md'),
+      h('div', { class: 'f-main' },
+        h('p', { class: 'f-name' }, p.name),
+        h('p', { class: 'hint' }, 'ID: ' + (p.shortId || q) + '  •  التقييم ' + (p.rating || 0)),
+        h('button', { class: 'btn btn-small', type: 'button', onclick: () => openProfile(ctx, uid) }, 'عرض الملف'),
+        h('button', { class: 'btn btn-primary btn-small', type: 'button', onclick: async () => {
+          try {
+            if (store.sendFriendRequest) await store.sendFriendRequest(uid);
+            else if (store.addFriend) await store.addFriend(uid);
+            else if (store.requestFriend) await store.requestFriend(uid);
+            else if (ctx.socialSvc && ctx.socialSvc()?.sendFriendRequest) await ctx.socialSvc().sendFriendRequest(uid);
+            else throw new Error('no method');
+            toast('تم إرسال طلب الصداقة');
+          } catch (e) { toast('مش قادر يبعت الطلب دلوقتي'); }
+        } }, 'ابعت صداقة')
+      )
+    ));
+  } catch (e) { replace(homeSearchResult, h('p', { class: 'hint' }, 'حصل مشكلة في البحث')); }
+}
+const homeSearchBox = h('div', { class: 'card' },
+  h('p', { class: 'hint' }, 'ابحث عن لاعب بالـ ID'),
+  homeSearchInput,
+  h('button', { class: 'btn btn-primary', type: 'button', onclick: doHomeSearch }, 'بحث'),
+  homeSearchResult
+);
   const root = h('div', { class: 'page home' },
     h('header', { class: `hero${acc.role ? '' : ' guest'}` },
       h('div', { class: 'hero-art', 'aria-hidden': 'true' }),
@@ -11625,7 +11664,7 @@ async function openProfile(ctx, uid) {
   const actions = [{ label: 'قفل', primary: !canSocial }];
   const body = h('div', { class: 'pp' },
     h('div', { class: 'pp-id' }, avatar(p.photo, p.name, 'xl'),
-      h('div', null, h('h3', { class: 'pp-name' }, p.name), h('p', { class: 'hint' }, GENDER_LABEL[p.gender] || ''))),
+      h('div', null, h('h3', { class: 'pp-name' }, p.name), h('p', { class: 'hint' }, 'ID: ' + p.shortId), h('p', { class: 'hint' }, GENDER_LABEL[p.gender] || ''))),
     statsBlock(p));
   if (canSocial) {
     const friendBtn = h('button', { class: 'btn', type: 'button', id: 'pp-friend' }, 'ضيف صديق');
