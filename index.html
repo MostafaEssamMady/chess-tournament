@@ -10829,6 +10829,7 @@ async function doHomeSearch() {
     if (store.findByShortId) found = await store.findByShortId(q);
     else if (store.getProfileByShortId) found = await store.getProfileByShortId(q);
     else if (store.listProfiles) { const all = await store.listProfiles(); const arr = Array.isArray(all) ? all : Object.values(all); found = arr.find((p) => { const sid = (p.shortId || '').toUpperCase(); const uid = String(p.uid || p.id || ''); const gen = uid ? 'KASH-' + uid.slice(-4).toUpperCase() : ''; const qs = q.replace(/^KASH-/, ''); return sid === q || gen === q || sid.replace(/^KASH-/, '') === qs || (uid && uid.slice(-4).toUpperCase() === qs); });
+    }
     if (!found) { replace(homeSearchResult, h('p', { class: 'hint' }, 'مفيش حد بالـ ID ده')); return; }
     const p = found.profile || found;
     const uid = p.uid || p.id || found.id;
